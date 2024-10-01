@@ -1,6 +1,7 @@
 import requests
 import csv
 import time
+import re
 from datetime import datetime
 from bs4 import BeautifulSoup
 
@@ -21,9 +22,25 @@ def getRegistered():
 
 	number = sibling_tag.get_text(strip=True).split()[0]
 	return number
+	sleeptime = (60 - now.minute) * 60 - now.second
+
+def getSolving():
+	url = 'https://www.logickaolympiada.cz/'
+	response = requests.get(url)
+
+	if response.status_code != 200:
+		logError(f"status code {response.status_code}")
+		return False
+
+	# find the correct tag
+	soup = BeautifulSoup(response.text, 'html.parser')
+	tag = soup.find(string=re.compile(r"V tuto chvíli test řeší.*soutěžících"))
+	number = re.search(r'\d+', tag).group()
+
+	return number
 
 def logCsv(columns):
-    with open("data.csv", mode='a', newline='') as file:
+    with open("data-solving.csv", mode='a', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(columns)
 
@@ -38,11 +55,11 @@ while True:
 	now = datetime.now()
 	
 	# scrape
-	registered = getRegistered()
+	result = getSolving()
 
 	# print and log
-	print(f"It is {now.strftime('%Y-%m-%d %H:%M')} and {registered} people are registered.")
+	print(f"It is {now.strftime('%Y-%m-%d %H:%M')} and {result} people are currently solving the test.")
 	logCsv([
 		now.strftime("%Y-%m-%d %H:%M"),
-		registered
+		result
 	])
